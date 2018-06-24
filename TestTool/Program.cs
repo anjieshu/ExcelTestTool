@@ -26,12 +26,12 @@ namespace TestTool
 
             var prevColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Green;
-            // Console.WriteLine($"Genereted sample workbooks can be found in {Utils.OutputDir.FullName}");
+            //Console.WriteLine($"Genereted sample workbooks can be found in {Utils.OutputDir.FullName}");
             Console.ForegroundColor = prevColor;
 
-            Console.WriteLine();
-            Console.WriteLine("Press the return key to exit...");
-            Console.Read();
+            //Console.WriteLine();
+            //Console.WriteLine("Press the return key to exit...");
+            //Console.Read();
         }
     }
 }
