@@ -198,12 +198,42 @@ namespace TestTool
                     Console.WriteLine("Columns inserted!\n");
                 }
 
-                Dictionary<String, String> testStatusDic = new Dictionary<string, string>();
+                Dictionary<String, DataModel> testStatusDic = new Dictionary<string, DataModel>();
                 int count = getSheetRowLength(testExecutionSheet);
                 int revisionColumnIndex = getColumnIndex(testExecutionSheet, "Revision");
                 int testsColumnIndex = getColumnIndex(testExecutionSheet, "Tests");
                 int finishedColumnIndex = getColumnIndex(testExecutionSheet, "Finished on");
                 int testStatusColumnIndex = getColumnIndex(testExecutionSheet, "Test Status");
+
+                for (int index = 2; index <= count; index++) {
+                    DataModel dataModel = new DataModel();
+                    Console.WriteLine("cells[{0},{1}]={2}", index, revisionColumnIndex, testExecutionSheet.Cells[index, revisionColumnIndex].Value);
+                    Console.WriteLine("cells[{0},{1}]={2}", index, testsColumnIndex, testExecutionSheet.Cells[index, testsColumnIndex].Value);
+                    Console.WriteLine("cells[{0},{1}]={2}", index, finishedColumnIndex, testExecutionSheet.Cells[index, finishedColumnIndex].Value);
+                    Console.WriteLine("cells[{0},{1}]={2}", index, testStatusColumnIndex, testExecutionSheet.Cells[index, testStatusColumnIndex].Value);
+
+                    dataModel.key = testExecutionSheet.Cells[index, revisionColumnIndex].Value.ToString() +
+                                                   testExecutionSheet.Cells[index, testsColumnIndex].Value.ToString();
+                    dataModel.timestamp = testExecutionSheet.Cells[index, finishedColumnIndex].Value.ToString();
+                    dataModel.status = testExecutionSheet.Cells[index, testStatusColumnIndex].Value.ToString();
+                    Console.WriteLine("Get dataModel: {0}", dataModel.toString());
+
+                    if (!testStatusDic.ContainsKey(dataModel.key)) {
+                        Console.WriteLine("Key({0}) does NOT exist. Inserting ...", dataModel.key);
+                        testStatusDic[dataModel.key] = dataModel;
+                    } else {
+                        Console.WriteLine("Key({0}) already existed. Comparing the timestamp ...", dataModel.key);
+                        DataModel existData = testStatusDic[dataModel.key];
+                        if (dataModel.isFinishedLater(existData)) {
+                            Console.WriteLine("dataModel({0}) is created later, replace the old one({1})", dataModel.toString(), existData.toString());
+                            testStatusDic[dataModel.key] = dataModel;
+                        }
+                    }
+                }
+
+                foreach (KeyValuePair<string, DataModel> entry in testStatusDic) {
+                    Console.WriteLine("{0}={1}-{2}", entry.Key, entry.Value.status, entry.Value.timestamp);
+                }
 
                 package.SaveAs(existingFile);
             }
