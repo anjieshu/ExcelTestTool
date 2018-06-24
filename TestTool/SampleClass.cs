@@ -122,7 +122,7 @@ namespace TestTool
 
             int index = 1;
             while (index <= sheet.Dimension.End.Column) {
-                Console.WriteLine("Cells[1, {0}]={1}\n", index, sheet.Cells[1, index].Value);
+                //Console.WriteLine("Cells[1, {0}]={1}\n", index, sheet.Cells[1, index].Value);
                 if (sheet.Cells[1, index].Value == null) {
                     break;
                 }
@@ -139,7 +139,7 @@ namespace TestTool
 
             int index = 1;
             while (index <= sheet.Dimension.End.Row) {
-                Console.WriteLine("Cells[{0}, 1]={1}\n", index, sheet.Cells[index, 1].Value);
+                //Console.WriteLine("Cells[{0}, 1]={1}\n", index, sheet.Cells[index, 1].Value);
                 if (sheet.Cells[index, 1].Value == null) {
                     break;
                 }
@@ -150,6 +150,26 @@ namespace TestTool
             return index - 1;
         }
 
+        public static void deleteColumnBetween(ExcelWorksheet sheet, String startColumn, String endColumn) {
+            Console.WriteLine("Enter deleteColumnBetween({0}, {1}), sheet={2}\n", startColumn, endColumn, sheet.Name);
+
+            int startIndex = getColumnIndex(sheet, startColumn);
+            int endIndex = getColumnIndex(sheet, endColumn);
+
+            if (startIndex > endIndex) {
+                int tmp = startIndex;
+                startIndex = endIndex;
+                endIndex = tmp;
+            }
+
+            for (int index = startIndex + 1; index < endIndex; index++) {
+                Console.WriteLine("Deleting column: {0} ...\n", sheet.Cells[1, index].Value);
+                sheet.DeleteColumn(index);
+            }
+
+            Console.WriteLine("Exit deleteColumnBetween()\n");
+        }
+
         public static String Run(String fileName)
         {
             Console.WriteLine("Starting running...\nReading file: {0}", fileName);
@@ -157,17 +177,34 @@ namespace TestTool
 
             FileInfo existingFile = new FileInfo(fileName);
             using (ExcelPackage package = new ExcelPackage(existingFile)) {
+                // Get unique Revision values
                 ExcelWorksheet testExecutionSheet = getSheet(package, "TestExecution");
                 String[] contents = getColumnContent(testExecutionSheet, "Revision");
                 List<String> columnRevision = filterColumnContent(contents);
 
                 ExcelWorksheet testPlanSheet = getSheet(package, "TestPlan");
+
+                // Delete columns between "Scenario" and "Defect link"
+                deleteColumnBetween(testPlanSheet, "Scenario", "Defect link");
+
+                // Insert columns between "Scenario" and "Defect link"
                 int columnIndex = getColumnIndex(testPlanSheet, "Scenario");
                 if (testPlanSheet != null && columnIndex > 0) {
                     Console.WriteLine("Inserting columns...\n");
                     testPlanSheet.InsertColumn(columnIndex + 1, columnRevision.Count);
+                    for (int index = 0; index < columnRevision.Count; index++) {
+                        testPlanSheet.Cells[1, columnIndex + 1 + index].Value = columnRevision[index];
+                    }
                     Console.WriteLine("Columns inserted!\n");
                 }
+
+                Dictionary<String, String> testStatusDic = new Dictionary<string, string>();
+                int count = getSheetRowLength(testExecutionSheet);
+                int revisionColumnIndex = getColumnIndex(testExecutionSheet, "Revision");
+                int testsColumnIndex = getColumnIndex(testExecutionSheet, "Tests");
+                int finishedColumnIndex = getColumnIndex(testExecutionSheet, "Finished on");
+                int testStatusColumnIndex = getColumnIndex(testExecutionSheet, "Test Status");
+
                 package.SaveAs(existingFile);
             }
 
