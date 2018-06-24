@@ -15,88 +15,84 @@ namespace TestTool
         {
         }
 
-        private static List<String> filterColumn(String[] column)
+        private static List<String> filterColumnContent(String[] contents)
         {
             Console.WriteLine("Enter filterColumn()\n");
-            if (column == null || column.Length < 0) {
+            if (contents == null) {
                 Console.WriteLine("Input Error!\n");
                 return null;
             }
 
-            List<String> columnRevision = new List<string>();
-            foreach (String name in column) {
-                if (!columnRevision.Contains(name)) {
-                    columnRevision.Add(name);
-                    Console.WriteLine("Add value: {0}\n", name);
+            List<String> filteredColumn = new List<string>();
+            foreach (String content in contents) {
+                if (!filteredColumn.Contains(content)) {
+                    filteredColumn.Add(content);
+                    Console.WriteLine("filtered value: {0}\n", content);
                 }
             }
 
             Console.WriteLine("Exit filterColumn()\n");
-            return columnRevision;
+            return filteredColumn;
         }
 
-        private static String[] findColumn(ExcelWorksheet sheet, String columnName)
+        private static String[] getColumnContent(ExcelWorksheet sheet, String columnName)
         {
-            Console.WriteLine("Enter findColumn(): sheet={0}, column={1}\n", sheet, columnName);
+            Console.WriteLine("Enter getColumnContent(): sheet={0}, column={1}\n", sheet, columnName);
 
             if (sheet == null || columnName == null) {
                 Console.WriteLine("Input Error!");
                 return null;
             }
 
-            int count = 0;
-            for (int index = 1; index <= sheet.Dimension.End.Column; index++) {
-                if (sheet.Cells[1, index].Value.ToString().Equals(columnName)) {
-                    Console.WriteLine("{0} is found in column[{1}]!\n", columnName, index);
-                    count = index;
-                    break;
-                }
-            }
-
+            int columnIndex = getColumnIndex(sheet, columnName);
             String[] content = null;
-            if (count != 0) {
-                int rowCount = sheet.Dimension.End.Row;
-                Console.WriteLine("rowCount={0}\n", rowCount);
 
-                content = new String[8];
-                for (int index = 0; index < 8; index++) {
-                    content[index] = sheet.Cells[index + 2, count].Value.ToString();
-                    Console.WriteLine("Add value: column[{0}]={1}\n", index, content[index]);
+            if (columnIndex > 0) {
+                int rowLength = getSheetRowLength(sheet);
+                if (rowLength > 1) {
+                    content = new String[rowLength - 1];
+                    for (int index = 0; index < rowLength - 1; index++) {
+                        content[index] = sheet.Cells[2 + index, columnIndex].Value.ToString();
+                        Console.WriteLine("get value: content[{0}]={1}\n", index, content[index]);
+                    }
                 }
             }
 
-            Console.WriteLine("Exit findColumn()\n");
+            Console.WriteLine("Exit getColumnContent()\n");
             return content;
         }
 
-        private static int findColumnIndex(ExcelWorksheet sheet, String columnName)
+        private static int getColumnIndex(ExcelWorksheet sheet, String columnName)
         {
-            Console.WriteLine("Enter findColumnIndex(): sheet={0}, column={1}\n", sheet, columnName);
+            Console.WriteLine("Enter getColumnIndex(): sheet={0}, column={1}\n", sheet, columnName);
 
             if (sheet == null || columnName == null){
                 Console.WriteLine("Input Error!");
                 return 0;
             }
 
-            int columnCount = sheet.Dimension.End.Column;
-            Console.WriteLine("columnCount={0}\n", columnCount);
+            int columnLength = getSheetColumnLength(sheet);
+            int columnIndex = 0;
 
-            int count = 0;
-            for (int index = 1; index <= sheet.Dimension.End.Column; index++) {
-                if (sheet.Cells[2, index].Value.ToString().Equals(columnName)) {
+            for (int index = 1; index <= columnLength; index++) {
+                if (sheet.Cells[1, index].Value.ToString().Equals(columnName)) {
                     Console.WriteLine("{0} is found in column[{1}]!\n", columnName, index);
-                    count = index;
+                    columnIndex = index;
                     break;
                 }
             }
 
-            Console.WriteLine("Exit findColumnIndex()\n");
-            return count;
+            if (columnIndex == 0) {
+                Console.WriteLine("NO COLUMN FOUND !!!\n");
+            }
+
+            Console.WriteLine("Exit getColumnIndex()\n");
+            return columnIndex;
         }
 
-        private static ExcelWorksheet findSheet(ExcelPackage package, String sheetName)
+        private static ExcelWorksheet getSheet(ExcelPackage package, String sheetName)
         {
-            Console.WriteLine("Enter findSheet(): package={0}, sheet={1}\n", package, sheetName);
+            Console.WriteLine("Enter getSheet(): package={0}, sheet={1}\n", package, sheetName);
 
             if (package == null || sheetName == null) {
                 Console.WriteLine("Input Error!\n");
@@ -112,7 +108,11 @@ namespace TestTool
                 }
             }
 
-            Console.WriteLine("Exit findSheet()\n");
+            if (wantedSheet == null) {
+                Console.WriteLine("NO SHEET FOUND !!!\n");
+            }
+
+            Console.WriteLine("Exit getSheet()\n");
             return wantedSheet;
         }
 
@@ -138,8 +138,7 @@ namespace TestTool
             Console.WriteLine("Enter getSheetRowLength(): sheet={0}\n", sheet.Name);
 
             int index = 1;
-            while (index <= sheet.Dimension.End.Row)
-            {
+            while (index <= sheet.Dimension.End.Row) {
                 Console.WriteLine("Cells[{0}, 1]={1}\n", index, sheet.Cells[index, 1].Value);
                 if (sheet.Cells[index, 1].Value == null) {
                     break;
@@ -158,22 +157,16 @@ namespace TestTool
 
             FileInfo existingFile = new FileInfo(fileName);
             using (ExcelPackage package = new ExcelPackage(existingFile)) {
-                ExcelWorksheet testExecutionSheet = findSheet(package, "TestExecution");
-                getSheetColumnLength(testExecutionSheet);
-                getSheetRowLength(testExecutionSheet);
+                ExcelWorksheet testExecutionSheet = getSheet(package, "TestExecution");
+                String[] contents = getColumnContent(testExecutionSheet, "Revision");
+                List<String> columnRevision = filterColumnContent(contents);
 
-                String[] content = findColumn(testExecutionSheet, "Revision");
-                List<String> columnRevision = filterColumn(content);
-
-                ExcelWorksheet testPlanSheet = findSheet(package, "TestPlan");
-                getSheetColumnLength(testPlanSheet);
-                getSheetRowLength(testPlanSheet);
-
-                int columnIndex = findColumnIndex(testPlanSheet, "Scenario");
+                ExcelWorksheet testPlanSheet = getSheet(package, "TestPlan");
+                int columnIndex = getColumnIndex(testPlanSheet, "Scenario");
                 if (testPlanSheet != null && columnIndex > 0) {
-                    //Console.WriteLine("Inserting columns...\n");
-                    //testPlanSheet.InsertColumn(columnIndex + 1, columnRevision.Count);
-                    //Console.WriteLine("Columns inserted!\n");
+                    Console.WriteLine("Inserting columns...\n");
+                    testPlanSheet.InsertColumn(columnIndex + 1, columnRevision.Count);
+                    Console.WriteLine("Columns inserted!\n");
                 }
                 package.SaveAs(existingFile);
             }
